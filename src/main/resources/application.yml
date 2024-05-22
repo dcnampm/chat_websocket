@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: chat
+  datasource:
+    url: jdbc:mysql://localhost:3306/chat_app
+    username: root
+    password: nam.pd193034@
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database: mysql
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+application:
+  security:
+    jwt:
+      secret-key: 5d9bcee44a9f0549cf53d86206bf8d1e98c675ce843bab16685e9d1056e64633
+      expiration: 86400000 # a day
+
+#  data:
+#    mongodb:
+#      username: nampd
+#      password: nam.pd193034@
+#      host: localhost
+#      port: 27017
+#      database: chat_app
+#      authentication-database: admin
+
+
