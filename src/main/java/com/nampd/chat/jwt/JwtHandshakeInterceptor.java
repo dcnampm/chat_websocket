@@ -1,8 +1,7 @@
 package com.nampd.chat.jwt;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
@@ -14,10 +13,10 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
-    private final JwtService jwtService;
+    @Autowired
+    private JwtService jwtService;
 
     @Override
     public boolean beforeHandshake(
@@ -33,7 +32,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             String jwt = authHeader.substring(7);
 
             if (jwtService.isTokenValid(jwt)) {
-//                attributes.put("username", jwtService.extractUsername(jwt));
+                attributes.put("username", jwtService.extractUsername(jwt));
                 return true;
             }
         }
@@ -49,6 +48,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             @NonNull WebSocketHandler wsHandler,
             Exception exception
     ) {
+        String token = request.getHeaders().getFirst("Authorization");
         //Ko cần triển khai
     }
 }

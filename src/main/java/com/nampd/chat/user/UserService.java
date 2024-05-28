@@ -30,7 +30,7 @@ public class UserService {
         }
     }
 
-    public void login(User user) {
+    public void addUser(User user) {
         user.setStatus(Status.ONLINE);
         userRepository.save(user);
     }

@@ -16,104 +16,61 @@ let password = null;
 let selectedUserId = null;
 let token = null;
 
-function loginUser(event) {
-    const nickname = document.querySelector('#nickname').value.trim();
+async function connect(event) {
+    nickname = document.querySelector('#nickname').value.trim();
     const password = document.querySelector('#password').value.trim();
 
-    if (nickname && password) {
-        const user = {
-            nickName: nickname,
-            password: password
-        };
+    console.log('Data sent:', JSON.stringify({ nickName: nickname, password: password }));
 
-        // Gửi yêu cầu POST đến API để kiểm tra đăng nhập
+    if (nickname && password) {
+        // Authenticate the user
         fetch('/api/v1/auth/authenticate', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json; charset=utf-8'
             },
-            body: JSON.stringify(user)
+            body: JSON.stringify({nickName: nickname, password: password})
         })
             .then(response => {
-                if (response.ok) {
-                    // Xử lý phản hồi nếu đăng nhập thành công
-                    token = response.body;
-                    return response.json();
+                console.log('Authentication response status:', response.status);
 
+                if (response.ok) {
+                    return response.json();
                 } else {
-                    // Xử lý phản hồi nếu đăng nhập không thành công
-                    throw new Error('Login failed');
+                    throw new Error('Authentication failed. Please check your credentials.');
                 }
             })
             .then(data => {
-                console.log('Login successful:', data);
+                token = data.token;
 
-                // Lưu token vào local storage hoặc cookie
-                localStorage.setItem('token', data.token);
+                localStorage.setItem('token', token);
 
-                // token = data.token;
-                //
-                // usernamePage.classList.add('hidden');
-                // chatPage.classList.remove('hidden');
-                //
-                // // Tạo một đối tượng Cookie với token
-                // const tokenCookie = "token=" + token;
-                //
-                // // Đặt cookie với miền cụ thể, ở đây là localhost
-                // document.cookie = tokenCookie + "; domain=localhost; path=/";
-                //
-                // const socket = new SockJS('/ws');
-                // stompClient = Stomp.over(socket);
-                //
-                // // Gửi cookies trong header của yêu cầu
-                // const headers = {
-                //     // Cookie: tokenCookie
-                //     Authorization: 'Bearer ' + token
-                // };
-                //
-                // stompClient.connect(headers, onConnected, onError);
+                console.log('Authentication successful, token:', token);
 
-                // Gọi hàm connect để kết nối tới WebSocket sau khi đăng nhập thành công
-                connect(event);
+                usernamePage.classList.add('hidden');
+                chatPage.classList.remove('hidden');
+
+                const socket = new SockJS('/ws');
+                stompClient = Stomp.over(socket);
+
+                // Add Authorization header with token
+                const headers = {
+                    Authorization: 'Bearer ' + token
+                };
+
+                stompClient.connect(headers, onConnected, onError);
             })
             .catch(error => {
-                console.error('Error logging in:', error);
-                // Xử lý lỗi đăng nhập
+                console.error('Error during authentication:', error);
+                alert('Error during authentication. Please try again later.');
             });
     }
     event.preventDefault();
 }
 
-function connect(event) {
-    nickname = document.querySelector('#nickname').value.trim();
-    password = document.querySelector('#password').value.trim();
-
-    if (nickname && password) {
-        usernamePage.classList.add('hidden');
-        chatPage.classList.remove('hidden');
-
-        // Tạo một đối tượng Cookie với token
-        const tokenCookie = "token=" + token;
-
-        // Đặt cookie với miền cụ thể, ở đây là localhost
-        document.cookie = tokenCookie + "; domain=localhost; path=/";
-
-        const socket = new SockJS('/ws');
-        stompClient = Stomp.over(socket);
-
-        // Gửi cookies trong header của yêu cầu
-        const headers = {
-            Cookie: tokenCookie
-            // Authorization: 'Bearer ' + token
-        };
-
-        stompClient.connect({}, onConnected, onError);
-    }
-    event.preventDefault();
-}
-
-
 function onConnected() {
+    console.log('Connected to WebSocket server.');
+
     stompClient.subscribe(`/user/${nickname}/queue/messages`, onMessageReceived);
     stompClient.subscribe(`/user/public`, onMessageReceived);
 
@@ -122,25 +79,34 @@ function onConnected() {
         {},
         JSON.stringify({nickName: nickname, fullName: fullname, password: password, status: 'ONLINE'})
     );
+
     document.querySelector('#connected-user-fullname').textContent = fullname;
     findAndDisplayConnectedUsers().then();
 }
 
 async function findAndDisplayConnectedUsers() {
-    const connectedUsersResponse = await fetch('/users');
-    let connectedUsers = await connectedUsersResponse.json();
-    connectedUsers = connectedUsers.filter(user => user.nickName !== nickname);
-    const connectedUsersList = document.getElementById('connectedUsers');
-    connectedUsersList.innerHTML = '';
+    try {
+        const connectedUsersResponse = await fetch('/online', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
-    connectedUsers.forEach(user => {
-        appendUserElement(user, connectedUsersList);
-        if (connectedUsers.indexOf(user) < connectedUsers.length - 1) {
-            const separator = document.createElement('li');
-            separator.classList.add('separator');
-            connectedUsersList.appendChild(separator);
-        }
-    });
+        const connectedUsers = await connectedUsersResponse.json();
+        const connectedUsersList = document.getElementById('connectedUsers');
+        connectedUsersList.innerHTML = '';
+
+        connectedUsers.forEach(user => {
+            appendUserElement(user, connectedUsersList);
+            if (connectedUsers.indexOf(user) < connectedUsers.length - 1) {
+                const separator = document.createElement('li');
+                separator.classList.add('separator');
+                connectedUsersList.appendChild(separator);
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching connected users:', error);
+    }
 }
 
 function appendUserElement(user, connectedUsersList) {
@@ -201,13 +167,22 @@ function displayMessage(senderId, content) {
 }
 
 async function fetchAndDisplayUserChat() {
-    const userChatResponse = await fetch(`/messages/${nickname}/${selectedUserId}`);
-    const userChat = await userChatResponse.json();
-    chatArea.innerHTML = '';
-    userChat.forEach(chat => {
-        displayMessage(chat.senderId, chat.content);
-    });
-    chatArea.scrollTop = chatArea.scrollHeight;
+    try {
+        const userChatResponse = await fetch(`/messages/${nickname}/${selectedUserId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const userChat = await userChatResponse.json();
+        chatArea.innerHTML = '';
+        userChat.forEach(chat => {
+            displayMessage(chat.senderId, chat.content);
+        });
+        chatArea.scrollTop = chatArea.scrollHeight;
+    } catch (error) {
+        console.error('Error fetching user chat:', error);
+    }
+
 }
 
 
@@ -259,14 +234,16 @@ async function onMessageReceived(payload) {
 }
 
 function onLogout() {
-    stompClient.send("/app/user.disconnectUser",
-        {},
-        JSON.stringify({nickName: nickname, fullName: fullname, password: password, status: 'OFFLINE'})
-    );
+    if (stompClient) {
+        stompClient.send("/app/user.disconnectUser",
+            {},
+            JSON.stringify({nickName: nickname, fullName: fullname, password: password, status: 'OFFLINE'})
+        );
+    }
     window.location.reload();
 }
 
-usernameForm.addEventListener('submit', loginUser, true); // step 1
+usernameForm.addEventListener('submit', connect, true);
 messageForm.addEventListener('submit', sendMessage, true);
 logout.addEventListener('click', onLogout, true);
 window.onbeforeunload = () => onLogout();

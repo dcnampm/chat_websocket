@@ -8,16 +8,17 @@
 </head>
 <body>
 
-<h2>One to One Chat App with Spring boot & Websocket</h2>
+<h2>One to One Chat with Spring boot & Websocket </h2>
 
-<div class="user-form" id="username-page" onsubmit="loginUser(event)">
+
+<div class="user-form" id="username-page">
   <h2>Enter Chatroom</h2>
   <form id="usernameForm">
     <label for="nickname">Nickname:</label>
     <input type="text" id="nickname" name="nickname" required>
 
     <label for="password">Password:</label>
-    <input type="text" id="password" name="password" required>
+    <input type="password" id="password" name="password" required>
 
     <button type="submit">Enter Chatroom</button>
   </form>
@@ -43,7 +44,7 @@
     <form id="messageForm" name="messageForm" class="hidden">
       <div class="message-input">
         <input autocomplete="off" type="text" id="message" placeholder="Type your message...">
-        <button>Send</button>
+        <button type="button">Send</button>
       </div>
     </form>
   </div>

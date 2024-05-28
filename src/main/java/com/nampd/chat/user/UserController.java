@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Controller
+@CrossOrigin
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
 
@@ -44,7 +44,7 @@ public class UserController {
     public User addUser(
             @Payload User user
     ) {
-        userService.login(user);
+        userService.addUser(user);
         return user;
     }
 

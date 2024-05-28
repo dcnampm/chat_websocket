@@ -17,16 +17,11 @@ import java.util.List;
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
-
-    public WebSocketConfig(JwtHandshakeInterceptor jwtHandshakeInterceptor) {
-        this.jwtHandshakeInterceptor = jwtHandshakeInterceptor;
-    }
-
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .addInterceptors(jwtHandshakeInterceptor)
+                .setAllowedOriginPatterns("*")
+                .addInterceptors(new JwtHandshakeInterceptor())
                 .withSockJS();
     }
 
