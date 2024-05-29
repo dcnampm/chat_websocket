@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,31 +31,48 @@ public class UserService {
         }
     }
 
-    public void addUser(User user) {
-        user.setStatus(Status.ONLINE);
-        userRepository.save(user);
+    public User login(User user) {
+        Optional<User> existingUser = userRepository.findByNickName(user.getNickName());
+
+        if (existingUser.isPresent()) {
+            User foundUser = existingUser.get();
+
+            System.out.println(foundUser);
+
+            foundUser.setStatus(Status.ONLINE);
+            userRepository.save(foundUser);
+            return foundUser;
+        } else {
+            user.setStatus(Status.ONLINE);
+            userRepository.save(user);
+            return user;
+        }
     }
 
     public void disconnect(User user) {
-        User storedUser = userRepository.findByNickName(user.getNickName());
-        if (storedUser != null) {
-            storedUser.setStatus(Status.OFFLINE);
-            userRepository.save(storedUser);
-        }
+        Optional<User> storedUser = userRepository.findByNickName(user.getNickName());
+
+        System.out.println(storedUser);
+
+        storedUser.ifPresent(savedUser -> {
+            savedUser.setStatus(Status.OFFLINE);
+            userRepository.save(savedUser);
+        });
     }
+
 
     public List<User> findConnectedUsers() {
         return userRepository.findAllByStatus(Status.ONLINE);
     }
 
     public User authenticate(User user) {
-        User foundUser = userRepository.findByNickName(user.getNickName());
+        Optional<User> foundUser = userRepository.findByNickName(user.getNickName());
 
-        if (foundUser != null) {
+        if (foundUser.isPresent()) {
 //            if (passwordEncoder.matches(loginForm.getPassword(), foundUser.getPassword()))
-            if (user.getPassword().equals(foundUser.getPassword())) {
-                System.out.println(foundUser);
-                return foundUser;
+            if (user.getPassword().equals(foundUser.get().getPassword())) {
+//                System.out.println(foundUser);
+                return foundUser.get();
             } else {
                 throw new IllegalArgumentException("Wrong password");
             }
@@ -62,31 +80,4 @@ public class UserService {
             throw new IllegalArgumentException("User does not exist");
         }
     }
-
-//    public void setUserOnline(LoginForm loginForm, boolean online) {
-//        if (loginForm.getUsername() == null || loginForm.getPassword() == null) {
-//            throw new IllegalArgumentException("Missed information");
-//        }
-//        User foundUser = userRepository.findByUsername(loginForm.getUsername());
-//        if (foundUser != null) {
-//            if (passwordEncoder.matches(loginForm.getPassword(), foundUser.getPassword())) {
-//                foundUser.setOnline(online);
-//                userRepository.save(foundUser);
-//            } else {
-//                throw new IllegalArgumentException("Wrong password");
-//            }
-//        } else {
-//            throw new IllegalArgumentException("User does not exist");
-//        }
-//    }
-//
-//    public void setUserOffline(String username, boolean online) {
-//        User user = userRepository.findByUsername(username);
-//        if (user != null) {
-//            user.setStatus(online);
-//            userRepository.save(user);
-//        } else {
-//            throw new IllegalArgumentException("User not exist");
-//        }
-//    }
 }

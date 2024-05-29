@@ -28,15 +28,11 @@
 //                                        "/ws/**")
 //                                .permitAll()
 //                                .anyRequest()
-//                                .permitAll()
+//                                .authenticated()
 //                );
 //
 //        return http.build();
 //    }
 //
-//    @Bean
-//    public PasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder();
-//    }
 //}
 //

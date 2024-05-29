@@ -15,10 +15,11 @@ let fullname = null;
 let password = null;
 let selectedUserId = null;
 let token = null;
+let id = null;
 
 async function connect(event) {
     nickname = document.querySelector('#nickname').value.trim();
-    const password = document.querySelector('#password').value.trim();
+    password = document.querySelector('#password').value.trim();
 
     console.log('Data sent:', JSON.stringify({ nickName: nickname, password: password }));
 
@@ -50,7 +51,8 @@ async function connect(event) {
                 usernamePage.classList.add('hidden');
                 chatPage.classList.remove('hidden');
 
-                const socket = new SockJS('/ws');
+                const socket = new SockJS('/ws?token=' + encodeURIComponent('Bearer ' + token));
+                // const socket = new SockJS('/ws');
                 stompClient = Stomp.over(socket);
 
                 // Add Authorization header with token
@@ -68,45 +70,35 @@ async function connect(event) {
     event.preventDefault();
 }
 
-function onConnected() {
-    console.log('Connected to WebSocket server.');
-
+async function onConnected() {
     stompClient.subscribe(`/user/${nickname}/queue/messages`, onMessageReceived);
     stompClient.subscribe(`/user/public`, onMessageReceived);
 
-    // register the connected user
+    //register the connected user
     stompClient.send("/app/user.addUser",
         {},
-        JSON.stringify({nickName: nickname, fullName: fullname, password: password, status: 'ONLINE'})
+        JSON.stringify({nickName: nickname, password: password, fullName: fullname, status: 'ONLINE'})
     );
 
-    document.querySelector('#connected-user-fullname').textContent = fullname;
+    document.querySelector('#connected-user-nickname').textContent = nickname;
     findAndDisplayConnectedUsers().then();
 }
 
 async function findAndDisplayConnectedUsers() {
-    try {
-        const connectedUsersResponse = await fetch('/online', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+    const connectedUsersResponse = await fetch('/online');
+    let connectedUsers = await connectedUsersResponse.json();
+    connectedUsers = connectedUsers.filter(user => user.nickName !== nickname);
+    const connectedUsersList = document.getElementById('connectedUsers');
+    connectedUsersList.innerHTML = '';
 
-        const connectedUsers = await connectedUsersResponse.json();
-        const connectedUsersList = document.getElementById('connectedUsers');
-        connectedUsersList.innerHTML = '';
-
-        connectedUsers.forEach(user => {
-            appendUserElement(user, connectedUsersList);
-            if (connectedUsers.indexOf(user) < connectedUsers.length - 1) {
-                const separator = document.createElement('li');
-                separator.classList.add('separator');
-                connectedUsersList.appendChild(separator);
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching connected users:', error);
-    }
+    connectedUsers.forEach(user => {
+        appendUserElement(user, connectedUsersList);
+        if (connectedUsers.indexOf(user) < connectedUsers.length - 1) {
+            const separator = document.createElement('li');
+            separator.classList.add('separator');
+            connectedUsersList.appendChild(separator);
+        }
+    });
 }
 
 function appendUserElement(user, connectedUsersList) {
@@ -167,22 +159,13 @@ function displayMessage(senderId, content) {
 }
 
 async function fetchAndDisplayUserChat() {
-    try {
-        const userChatResponse = await fetch(`/messages/${nickname}/${selectedUserId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const userChat = await userChatResponse.json();
-        chatArea.innerHTML = '';
-        userChat.forEach(chat => {
-            displayMessage(chat.senderId, chat.content);
-        });
-        chatArea.scrollTop = chatArea.scrollHeight;
-    } catch (error) {
-        console.error('Error fetching user chat:', error);
-    }
-
+    const userChatResponse = await fetch(`/messages/${nickname}/${selectedUserId}`)
+    const userChat = await userChatResponse.json();
+    chatArea.innerHTML = '';
+    userChat.forEach(chat => {
+        displayMessage(chat.senderId, chat.content);
+    });
+    chatArea.scrollTop = chatArea.scrollHeight;
 }
 
 
@@ -237,7 +220,7 @@ function onLogout() {
     if (stompClient) {
         stompClient.send("/app/user.disconnectUser",
             {},
-            JSON.stringify({nickName: nickname, fullName: fullname, password: password, status: 'OFFLINE'})
+            JSON.stringify({nickName: nickname, password: password, status: 'OFFLINE'})
         );
     }
     window.location.reload();

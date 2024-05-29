@@ -1,7 +1,6 @@
 package com.nampd.chat.chatroom;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +13,10 @@ import lombok.NoArgsConstructor;
 @Entity
 public class ChatRoom {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String chatId;
     private String senderId;
     private String recipientId;
+
 }

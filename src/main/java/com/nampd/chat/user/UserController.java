@@ -16,27 +16,10 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
-//    @GetMapping("/online")
-//    public List<User> getOnlineUsers() {
-//        return userService.findConnectedUsers();
-//    }
-//
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        userService.saveUser(user);
-        return ResponseEntity.ok("Register successfully");
-    }
-//
-//    @PostMapping("/login")
-//    public ResponseEntity<GenericResponse<?>> login(@RequestBody LoginForm loginForm) {
-//        userService.setUserOnline(loginForm, true);
-//        return ResponseEntity.ok(new GenericResponse<>(null));
-//    }
-//
-//    @PostMapping("/logout")
-//    public ResponseEntity<GenericResponse<?>> logout(@RequestBody String username) {
-//        userService.setUserOffline(username, false);
-//        return ResponseEntity.ok(new GenericResponse<>(null));
+//    @PostMapping("/register")
+//    public ResponseEntity<?> register(@RequestBody User user) {
+//        userService.saveUser(user);
+//        return ResponseEntity.ok("Register successfully");
 //    }
 
     @MessageMapping("/user.addUser")
@@ -44,8 +27,7 @@ public class UserController {
     public User addUser(
             @Payload User user
     ) {
-        userService.addUser(user);
-        return user;
+        return userService.login(user);
     }
 
     @MessageMapping("/user.disconnectUser")
